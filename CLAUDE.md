@@ -22,6 +22,14 @@ sync.
 
 ## Planned data sources & APIs (for the real implementation)
 
+**ServiceNow instance URL:** `https://help.fleetpride.com/` — configured as
+`ServiceNow:BaseUrl` in `src/SupportDashboard.Web/appsettings.json`, bound
+to `Infrastructure/ServiceNow/ServiceNowOptions` and validated at startup.
+Not yet confirmed that the Table API is served on this host: it may be a
+custom portal domain for an underlying `*.service-now.com` instance — check
+`/api/now/table/incident` there before building the client. Credentials go
+in user secrets / Key Vault, never appsettings.json.
+
 - **ServiceNow**: Table API, `GET /api/now/table/incident`, paginated via
   `sysparm_limit`/`sysparm_offset`, field-limited via `sysparm_fields`. Auth:
   Basic or OAuth2 (OAuth2 preferred for anything beyond a quick script).

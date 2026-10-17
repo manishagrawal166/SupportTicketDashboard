@@ -1,11 +1,17 @@
 using SupportDashboard.Core.Interfaces;
 using SupportDashboard.Core.Models;
 using SupportDashboard.Infrastructure.InMemory;
+using SupportDashboard.Infrastructure.ServiceNow;
 using SupportDashboard.Infrastructure.Simulation;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddOptions<ServiceNowOptions>()
+    .Bind(builder.Configuration.GetSection(ServiceNowOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
 
 // Sample data until the ServiceNow/Azure sync jobs and the SQLite database are built.
 builder.Services.AddSingleton(TimeProvider.System);
