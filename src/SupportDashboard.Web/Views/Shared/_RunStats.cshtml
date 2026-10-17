@@ -1,0 +1,19 @@
+@model RunStats
+<div class="stat-grid stat-grid--4">
+    <div class="stat-tile">
+        <div class="stat-tile__label">@Model.TotalLabel</div>
+        <div class="stat-tile__value">@Model.Total</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-tile__label"><span class="dot tone-success"></span>Succeeded</div>
+        <div class="stat-tile__value">@Model.Succeeded</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-tile__label"><span class="dot tone-danger"></span>Failed</div>
+        <div class="stat-tile__value">@Model.Failed</div>
+    </div>
+    <div class="stat-tile">
+        <div class="stat-tile__label"><span class="dot tone-info"></span>Running</div>
+        <div class="stat-tile__value">@Model.Running</div>
+    </div>
+</div>

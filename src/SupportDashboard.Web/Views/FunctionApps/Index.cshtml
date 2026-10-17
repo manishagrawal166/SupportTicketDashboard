@@ -1,0 +1,65 @@
+@model RunListViewModel<FunctionExecution>
+@{
+    ViewData["Title"] = "Function Apps";
+}
+
+<nav class="crumbs" aria-label="Breadcrumb">
+    <a asp-controller="Home" asp-action="Index">Overview</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Function Apps</span>
+</nav>
+
+<div class="page-header">
+    <div>
+        <div class="eyebrow theme-functions">Azure · Function Apps</div>
+        <h1 class="page-title">Function executions</h1>
+        <p class="page-subtitle">Last 24 hours · @Model.Stats.SuccessRate.ToString("0.#")% success · times shown in Central Time</p>
+    </div>
+</div>
+
+<partial name="_RunStats" model="Model.Stats" />
+
+<section class="panel" aria-label="Executions">
+    <div class="table-scroll">
+        <table class="data-table">
+            <colgroup>
+                <col style="width: 22%" />
+                <col style="width: 16%" />
+                <col style="width: 120px" />
+                <col style="width: 100px" />
+                <col style="width: 150px" />
+                <col style="width: 100px" />
+                <col />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th scope="col">Function</th>
+                    <th scope="col">App</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">Trigger</th>
+                    <th scope="col">Started</th>
+                    <th scope="col">Duration</th>
+                    <th scope="col">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var run in Model.Items)
+                {
+                    <tr>
+                        <td class="truncate cell-strong" title="@run.FunctionName">@run.FunctionName</td>
+                        <td class="truncate mono" title="@run.AppName">@run.AppName</td>
+                        <td><span class="badge-pill tone-@DisplayFormat.StatusTone(run.Status)">@run.Status</span></td>
+                        <td>@run.Trigger</td>
+                        <td>
+                            <div>@CentralTime.FormatTime(run.StartUtc)</div>
+                            <div class="cell-sub">@DisplayFormat.Relative(run.StartUtc, Model.Now)</div>
+                        </td>
+                        <td>@DisplayFormat.Duration(run.Duration)</td>
+                        <td class="truncate @(run.ErrorMessage is null ? "cell-muted" : "cell-error")" title="@run.ErrorMessage">@(run.ErrorMessage ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel__footer">Showing @Model.Items.Count executions</div>
+</section>

@@ -1,0 +1,122 @@
+@model IncidentsPageViewModel
+@{
+    ViewData["Title"] = "Incidents";
+    var priorities = new[] { ("P1", "danger", Model.Totals.P1), ("P2", "warning", Model.Totals.P2), ("P3", "caution", Model.Totals.P3), ("P4", "indigo", Model.Totals.P4), ("P5", "neutral", Model.Totals.P5) };
+}
+
+<nav class="crumbs" aria-label="Breadcrumb">
+    <a asp-controller="Home" asp-action="Index">Overview</a>
+    <span aria-hidden="true">/</span>
+    <span aria-current="page">Incidents</span>
+</nav>
+
+<div id="incidents-page" data-api-url="/api/incidents">
+    <div class="page-header">
+        <div>
+            <div class="eyebrow theme-incidents">ServiceNow · Incident Management</div>
+            <h1 class="page-title">Incidents</h1>
+            <p class="page-subtitle"><span data-total="total">@Model.Totals.Total</span> tickets · times shown in Central Time</p>
+        </div>
+        <button type="button" id="simulate-btn" class="app-btn app-btn--primary">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>
+            Simulate new ticket
+        </button>
+    </div>
+
+    <section class="stat-grid stat-grid--6" aria-label="Ticket totals">
+        <div class="stat-tile stat-tile--primary">
+            <div class="stat-tile__label">Total opened tickets</div>
+            <div class="stat-tile__value" data-total="total">@Model.Totals.Total</div>
+        </div>
+        @foreach (var (label, tone, count) in priorities)
+        {
+            <div class="stat-tile">
+                <div class="stat-tile__label"><span class="dot tone-@tone"></span>@label</div>
+                <div class="stat-tile__value" data-total="@label.ToLowerInvariant()">@count</div>
+            </div>
+        }
+    </section>
+
+    <section class="panel filter-panel" aria-label="Filters">
+        <div class="filter-grid">
+            <div class="field">
+                <label class="field__label" for="filter-from">From</label>
+                <input id="filter-from" type="date" class="field__input" />
+            </div>
+            <div class="field">
+                <label class="field__label" for="filter-to">To</label>
+                <input id="filter-to" type="date" class="field__input" />
+            </div>
+            <div class="field">
+                <label class="field__label" for="filter-sla">SLA</label>
+                <select id="filter-sla" class="field__input">
+                    <option value="">All tickets</option>
+                    <option value="response">Response SLA breached</option>
+                    <option value="resolution">Resolution SLA breached</option>
+                </select>
+            </div>
+            <div class="field field--grow">
+                <label class="field__label" for="filter-search">Search</label>
+                <div class="search-input">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+                    <input id="filter-search" type="search" class="field__input" placeholder="Incident number or description" autocomplete="off" aria-describedby="search-hint" />
+                </div>
+                <div id="search-hint" class="field__hint">Separate multiple incidents with commas, e.g. INC0045231, INC0045224</div>
+            </div>
+            <div class="field field--actions">
+                <button type="button" id="filter-clear" class="app-btn app-btn--ghost">Clear filters</button>
+            </div>
+        </div>
+        <div class="chip-group" role="group" aria-label="Filter by priority">
+            <button type="button" class="chip is-active" data-priority="all" aria-pressed="true">All <span class="chip__count" data-facet="total">@Model.Totals.Total</span></button>
+            @foreach (var (label, tone, count) in priorities)
+            {
+                <button type="button" class="chip" data-priority="@label" aria-pressed="false"><span class="dot tone-@tone"></span>@label <span class="chip__count" data-facet="@label.ToLowerInvariant()">@count</span></button>
+            }
+        </div>
+    </section>
+
+    <section class="panel" aria-labelledby="incident-table-heading">
+        <h2 id="incident-table-heading" class="visually-hidden">Incident list</h2>
+        <div class="table-scroll">
+            <table class="data-table data-table--incidents">
+                <colgroup>
+                    <col style="width: 112px" />
+                    <col />
+                    <col style="width: 72px" />
+                    <col style="width: 108px" />
+                    <col style="width: 150px" />
+                    <col style="width: 118px" />
+                    <col style="width: 118px" />
+                    <col style="width: 124px" />
+                    <col style="width: 76px" />
+                    <col style="width: 190px" />
+                </colgroup>
+                <thead>
+                    <tr>
+                        <th scope="col" data-sort-col="number"><button type="button" class="sort-btn" data-sort="number">Incident<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="description"><button type="button" class="sort-btn" data-sort="description">Short description<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="priority"><button type="button" class="sort-btn" data-sort="priority">Priority<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="state"><button type="button" class="sort-btn" data-sort="state">State / SLA<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="group"><button type="button" class="sort-btn" data-sort="group">Assignment group<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="assignedBy"><button type="button" class="sort-btn" data-sort="assignedBy">Assigned by<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="assignedTo"><button type="button" class="sort-btn" data-sort="assignedTo">Assigned to<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="opened"><button type="button" class="sort-btn" data-sort="opened">Opened (CT)<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col" data-sort-col="age"><button type="button" class="sort-btn" data-sort="age">Age<span class="sort-ind" aria-hidden="true"></span></button></th>
+                        <th scope="col">Comment</th>
+                    </tr>
+                </thead>
+                <tbody id="incident-rows">
+                    <tr class="table-message"><td colspan="10">Loading incidents…</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="panel__footer">
+            <span id="incident-count" aria-live="polite"></span>
+        </div>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/incidents.js" asp-append-version="true"></script>
+}
