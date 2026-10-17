@@ -174,9 +174,41 @@ click. Simpler v1 fallback if SignalR is more than needed at first: short
 **Deployment**: Azure App Service for the web app (natural fit, already
 pulling from Azure services throughout).
 
-## Not started yet
+## Current build status
 
-No application code has been written. The architecture above is decided;
-building it (backend sync services, EF Core + SQLite schema, MVC
-controllers/views, the JSON API layer, auth wiring, SignalR) is still
-future work.
+**Built (UI-first, on sample data):** .NET 10 solution (`SupportDashboard.slnx`)
+with all five pages — Overview, Incidents, Function Apps, ADF Pipelines,
+Logic Apps — plus the `/api/incidents` JSON API (GET with
+priority/search/from/to/sort/dir, `POST simulate`, `PUT {number}/comment`).
+Data comes from in-memory repositories in
+`Infrastructure/InMemory/` registered as singletons in `Program.cs`; they
+implement the Core interfaces (`IIncidentRepository`, `IRunRepository<T>`),
+so swapping in EF Core + SQLite later shouldn't touch controllers or views.
+Incident filter/sort logic lives in `Core/Incidents/IncidentQuery.cs`
+(unit-tested in `tests/`). Theme is a cookie (`sd-theme`) read by
+`_Layout.cshtml`; the sound preference is in localStorage; chime/toast
+helpers are on `window.SupportDashboard` in `site.js` so SignalR can reuse
+them on any page.
+
+**Overview page is ServiceNow-only (user decision, Oct 2026):** the four
+per-source cards were replaced by two SLA cards — *Response SLA breached*
+and *Resolution SLA breached* — each counting **active** (not
+Resolved/Closed/Canceled) incidents, with a P1–P5 breakdown, and linking to
+`/Incidents?sla=response|resolution`. The recent-activity table now lists
+only incidents opened in a selectable window (last 1/2/4/8 hours, default 8,
+via `?hours=`). Azure pages/controllers/repos were deliberately left
+untouched — the user wants to focus on ServiceNow for now.
+
+**SLA targets are placeholders** in `Core/Incidents/SlaPolicy.cs` (response
+P1 15m, P2 30m, P3 2h, P4 4h, P5 8h; resolution P1 4h, P2 8h, P3 1d, P4 3d,
+P5 5d — calendar time, no business hours). A breach = responded/resolved
+time (or now, if not yet) is past the due time. When the ServiceNow sync is
+built, take breach status from ServiceNow's `task_sla` records
+(`has_breached`, business-hours aware) instead of computing it here.
+
+The Incidents page reads/writes its filters from the URL (`priority`,
+`search`, `from`, `to`, `sla`), so Overview links open it pre-filtered.
+
+**Not built yet:** ServiceNow/Azure sync `BackgroundService`s, EF Core +
+SQLite schema and migrations, auth wiring, SignalR (the "Simulate new
+ticket" button stands in for it).

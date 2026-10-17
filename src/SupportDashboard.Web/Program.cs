@@ -1,15 +1,25 @@
+using SupportDashboard.Core.Interfaces;
+using SupportDashboard.Core.Models;
+using SupportDashboard.Infrastructure.InMemory;
+using SupportDashboard.Infrastructure.Simulation;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
+
+// Sample data until the ServiceNow/Azure sync jobs and the SQLite database are built.
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<IIncidentRepository, InMemoryIncidentRepository>();
+builder.Services.AddSingleton<IRunRepository<FunctionExecution>, InMemoryFunctionExecutionRepository>();
+builder.Services.AddSingleton<IRunRepository<PipelineRun>, InMemoryPipelineRunRepository>();
+builder.Services.AddSingleton<IRunRepository<WorkflowRun>, InMemoryWorkflowRunRepository>();
+builder.Services.AddSingleton<IncidentSimulator>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -20,10 +30,10 @@ app.UseAuthorization();
 
 app.MapStaticAssets();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
-
 
 app.Run();

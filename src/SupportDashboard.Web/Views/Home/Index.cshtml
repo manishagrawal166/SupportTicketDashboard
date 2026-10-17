@@ -1,8 +1,131 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model OverviewViewModel
+@{
+    ViewData["Title"] = "Overview";
+    var priorityTones = new Dictionary<string, string> { ["P1"] = "danger", ["P2"] = "warning", ["P3"] = "caution", ["P4"] = "indigo", ["P5"] = "neutral" };
+    var windowLabel = Model.WindowHours == 1 ? "hour" : $"{Model.WindowHours} hours";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="page-header">
+    <div>
+        <div class="eyebrow theme-incidents">ServiceNow</div>
+        <h1 class="page-title">Overview</h1>
+        <p class="page-subtitle">SLA health for open incidents · times shown in Central Time</p>
+    </div>
+    <div class="page-header__meta">Updated @CentralTime.Format(Model.Now)</div>
 </div>
+
+<section aria-label="SLA breaches">
+    <div class="summary-grid summary-grid--2">
+        @foreach (var card in Model.Cards)
+        {
+            var counts = new[] { ("P1", card.ByPriority.P1), ("P2", card.ByPriority.P2), ("P3", card.ByPriority.P3), ("P4", card.ByPriority.P4), ("P5", card.ByPriority.P5) };
+            <a class="summary-card theme-@card.Theme" asp-controller="Incidents" asp-action="Index" asp-route-sla="@card.SlaKey">
+                <div class="summary-card__head">
+                    <span class="summary-card__icon">
+                        @if (card.SlaKey == "response")
+                        {
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2.5M9 2h6M12 2v3" /></svg>
+                        }
+                        else
+                        {
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2h12M6 22h12M7 2v4.5a5 5 0 0 0 2 4l1.5 1.5L9 13.5a5 5 0 0 0-2 4V22M17 2v4.5a5 5 0 0 1-2 4L13.5 12l1.5 1.5a5 5 0 0 1 2 4V22" /></svg>
+                        }
+                    </span>
+                    <span class="summary-card__source">@card.Title</span>
+                </div>
+                <div class="summary-card__body">
+                    <div class="summary-card__headline">
+                        <span class="summary-card__value">@card.Breached</span>
+                        <span class="summary-card__label">of @card.ActiveTotal open incidents · @card.BreachedPercent.ToString("0")%</span>
+                    </div>
+                    <div class="prio-breakdown">
+                        @foreach (var (priority, count) in counts)
+                        {
+                            var target = card.Targets.First(t => t.Priority == priority).Target;
+                            <div class="prio-breakdown__item @(count > 0 ? "has-breaches" : "")">
+                                <div class="prio-breakdown__label"><span class="dot tone-@priorityTones[priority]"></span>@priority</div>
+                                <div class="prio-breakdown__value">@count</div>
+                                <div class="prio-breakdown__target">Target @target</div>
+                            </div>
+                        }
+                    </div>
+                    <span class="summary-card__link">View breached tickets <span aria-hidden="true">→</span></span>
+                </div>
+            </a>
+        }
+    </div>
+</section>
+
+<section class="panel mt-4" aria-labelledby="recent-heading">
+    <div class="panel__header">
+        <div>
+            <h2 id="recent-heading" class="panel__title">Recently opened tickets</h2>
+            <span class="panel__hint">Opened in the last @windowLabel</span>
+        </div>
+        <nav class="segmented" aria-label="Time window">
+            @foreach (var option in Model.WindowOptions)
+            {
+                var selected = option == Model.WindowHours;
+                <a class="@(selected ? "is-active" : "")" aria-current="@(selected ? "true" : null)" asp-controller="Home" asp-action="Index" asp-route-hours="@option">Last @(option)h</a>
+            }
+        </nav>
+    </div>
+    <div class="table-scroll">
+        <table class="data-table data-table--recent">
+            <colgroup>
+                <col style="width: 140px" />
+                <col />
+                <col style="width: 84px" />
+                <col style="width: 150px" />
+                <col style="width: 170px" />
+                <col style="width: 140px" />
+                <col style="width: 150px" />
+            </colgroup>
+            <thead>
+                <tr>
+                    <th scope="col">Incident</th>
+                    <th scope="col">Short description</th>
+                    <th scope="col">Priority</th>
+                    <th scope="col">State / SLA</th>
+                    <th scope="col">Assignment group</th>
+                    <th scope="col">Assigned to</th>
+                    <th scope="col">Opened</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Recent.Count == 0)
+                {
+                    <tr class="table-message"><td colspan="7">No tickets opened in the last @windowLabel.</td></tr>
+                }
+                @foreach (var row in Model.Recent)
+                {
+                    var incident = row.Incident;
+                    <tr class="@(row.IsNew ? "is-new" : "")">
+                        <td class="mono truncate">
+                            @incident.Number
+                            @if (row.IsNew)
+                            {
+                                <span class="new-badge">NEW</span>
+                            }
+                        </td>
+                        <td class="truncate" title="@incident.ShortDescription">
+                            <a class="row-link" asp-controller="Incidents" asp-action="Index" asp-route-search="@incident.Number">@incident.ShortDescription</a>
+                        </td>
+                        <td><span class="badge-pill tone-@DisplayFormat.PriorityTone(incident.Priority)">@incident.Priority</span></td>
+                        <td>
+                            <span class="badge-pill tone-@DisplayFormat.StateTone(incident.State)">@incident.State</span>
+                            <partial name="_SlaFlags" model="row.Sla" />
+                        </td>
+                        <td class="truncate" title="@incident.AssignmentGroup">@incident.AssignmentGroup</td>
+                        <td class="truncate">@incident.AssignedTo</td>
+                        <td>
+                            <div>@DisplayFormat.Relative(incident.OpenedUtc, Model.Now)</div>
+                            <div class="cell-sub">@CentralTime.FormatTime(incident.OpenedUtc)</div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="panel__footer">@Model.Recent.Count @(Model.Recent.Count == 1 ? "ticket" : "tickets") opened in the last @windowLabel</div>
+</section>

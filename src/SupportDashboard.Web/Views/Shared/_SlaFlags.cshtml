@@ -1,0 +1,14 @@
+@model SupportDashboard.Core.Incidents.SlaStatus
+@if (Model.ResponseBreached || Model.ResolutionBreached)
+{
+    <div class="sla-flags">
+        @if (Model.ResponseBreached)
+        {
+            <span class="sla-flag" title="Response was due @CentralTime.Format(Model.ResponseDueUtc)">Response SLA</span>
+        }
+        @if (Model.ResolutionBreached)
+        {
+            <span class="sla-flag" title="Resolution was due @CentralTime.Format(Model.ResolutionDueUtc)">Resolution SLA</span>
+        }
+    </div>
+}
